@@ -1,88 +1,89 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import './DisplayPage.css';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import "./DisplayPage.css";
 
 const DisplayPage = () => {
-  const [activeScreen, setActiveScreen] = useState(0);
-  const [data, setData] = useState({
-    screen1: [],
-    screen2: [],
-    screen3: []
-  });
-
+  const [data, setData] = useState([]);
+  const [screen, setScreen] = useState("screen1");
   const navigate = useNavigate();
 
-  // Function to fetch data for a specific screen
-  const fetchData = (screenNumber) => {
-    fetch('http://127.0.0.1:5000/api/companies')
-      .then((response) => response.json())
-      .then((fetchedData) => {
-        setData((prevData) => ({
-          ...prevData,
-          [`screen${screenNumber}`]: fetchedData
-        }));
-      })
-      .catch((error) => console.error(`Error fetching data for screen ${screenNumber}:`, error));
-  };
+  const fetchData = async () => {
+    const token = localStorage.getItem("token");
 
-  // Fetch data when active screen changes or every 5 seconds
-  useEffect(() => {
-    if (activeScreen !== null) {
-      fetchData(activeScreen + 1); // Fetch data for the active screen (1-based index)
-
-      const interval = setInterval(() => {
-        fetchData(activeScreen + 1);
-      }, 5000); // Refetch every 5 seconds
-
-      return () => clearInterval(interval); // Clear the interval on unmount or screen change
+    if (!token) {
+      console.error("No token found!");
+      return;
     }
-  }, [activeScreen]);
 
-  const handleScreenChange = (screenNum) => {
-    setActiveScreen(screenNum);
+    // Log the token to ensure it's being fetched correctly
+    console.log("Fetched Token: ", token);
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/api/companies", {
+        method: "GET", // Ensure the method is GET
+        headers: {
+          Authorization: `Bearer ${token}`, // Send the token with Bearer scheme
+        },
+      });
+
+      // Log the request headers for debugging
+      console.log("Request Headers:", response.headers);
+
+      if (response.status === 403) {
+        console.error("Unauthorized: Invalid or expired token");
+        navigate("/");
+        return;
+      }
+
+      const result = await response.json();
+      setData(result);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
   };
 
-  const handleBack = () => {
-    navigate('/');
-  };
+  useEffect(() => {
+    fetchData();
 
-  const renderTable = (screenData) => (
-    <table className="company-table">
-      <thead>
-        <tr>
-          <th>Company</th>
-          <th>Stock Price</th>
-        </tr>
-      </thead>
-      <tbody>
-        {screenData.map((item, index) => (
-          <tr key={index}>
-            <td>{item.Company}</td>
-            <td>{item.Score}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
+    const intervalId = setInterval(fetchData, 5000); // Fetch every 5 seconds
+
+    return () => clearInterval(intervalId);
+  }, [screen, navigate]);
+
+  const changeScreen = (screenName) => {
+    setScreen(screenName);
+  };
 
   return (
     <div className="display-container">
-      <div className="left-side">
-        <h2>Company Stocks</h2>
-        <button onClick={() => handleScreenChange(0)}>Screen 1</button>
-        <button onClick={() => handleScreenChange(1)}>Screen 2</button>
-        <button onClick={() => handleScreenChange(2)}>Screen 3</button>
-        <button onClick={handleBack}>Back</button>
+      <div className="button-container">
+        <button onClick={() => changeScreen("screen1")}>Screen 1</button>
+        <button onClick={() => changeScreen("screen2")}>Screen 2</button>
+        <button onClick={() => changeScreen("screen3")}>Screen 3</button>
+        <button onClick={() => changeScreen("screen4")}>Screen 4</button>
+        <button onClick={() => navigate("/")}>Back</button>
       </div>
-
-      <div className="right-side">
-        {activeScreen === 0 && data.screen1.length > 0 && renderTable(data.screen1)}
-        {activeScreen === 1 && data.screen2.length > 0 && renderTable(data.screen2)}
-        {activeScreen === 2 && data.screen3.length > 0 && renderTable(data.screen3)}
-        {(activeScreen === 0 && data.screen1.length === 0) ||
-         (activeScreen === 1 && data.screen2.length === 0) ||
-         (activeScreen === 2 && data.screen3.length === 0) && (
-          <p>Click to load data</p>
+      <div className="table-container">
+        <h2>Company Stocks</h2>
+        {data.length > 0 ? (
+          <table className="company-table">
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th>Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((item, index) => (
+                <tr key={index}>
+                  <td>{item.Company}</td>
+                  <td>{item.Score}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p>Loading...</p>
         )}
       </div>
     </div>
@@ -90,3 +91,4 @@ const DisplayPage = () => {
 };
 
 export default DisplayPage;
+

@@ -1,19 +1,20 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Login from './Login';
-import DisplayPage from './DisplayPage';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import LoginPage from "./LoginPage";
+import DisplayPage from "./DisplayPage";
 
-function App() {
+const App = () => {
   return (
-    <Router>
-      <div className="App">
+    <GoogleOAuthProvider clientId="601501315404-b00slmq7l8g6u7rtlqirmjohvgqchc6k.apps.googleusercontent.com">
+      <Router>
         <Routes>
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<LoginPage />} />
           <Route path="/display" element={<DisplayPage />} />
         </Routes>
-      </div>
-    </Router>
+      </Router>
+    </GoogleOAuthProvider>
   );
-}
+};
 
 export default App;
